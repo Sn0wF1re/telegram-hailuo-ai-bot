@@ -14,7 +14,7 @@ if (!BOT_TOKEN || !USEAPI_TOKEN) {
 const bot = new Telegraf(BOT_TOKEN);
 const userRequestCounts = new Map(); // Store request counts per user
 
-async function checkVideoStatus(ctx, videoId) {
+async function checkVideoStatus(ctx, videoId, messageId) {
     const response = await fetch(`https://api.useapi.net/v1/minimax/videos/${videoId}`, {
         headers: {
             "Authorization": `Bearer ${USEAPI_TOKEN}`
@@ -25,11 +25,11 @@ async function checkVideoStatus(ctx, videoId) {
     console.log('Video data:', videoData);
 
     if (videoData.videoURL) {
-        ctx.replyWithVideo(videoData.videoURL, { caption: 'Here\'s your video!' });
+        ctx.replyWithVideo(videoData.videoURL, { caption: 'Here\'s your video!', reply_to_message_id: messageId });
     } else if (!videoData.statusFinal) {
-        setTimeout(() => checkVideoStatus(ctx, videoId), 1000 * 20); // Check again after 15 seconds
+        setTimeout(() => checkVideoStatus(ctx, videoId, ctx.message.message_id), 1000 * 20); // Check again after 15 seconds
     } else {
-        ctx.reply('Could not retrieve video URL from Hailuo AI response.');
+        ctx.reply('Could not retrieve video URL from Hailuo AI response.', { reply_to_message_id: messageId });
         console.error("Hailuo AI response:", videoData);
     }
 }
@@ -93,7 +93,7 @@ bot.command('generate', async (ctx) => {
         const result = await response.json();
         const videoId = result.videoId;
 
-        checkVideoStatus(ctx, videoId);
+        checkVideoStatus(ctx, videoId, ctx.message.message_id);
     } catch (error) {
         ctx.reply(`Error generating video: ${error.message}`);
         console.error('Error:', error);
